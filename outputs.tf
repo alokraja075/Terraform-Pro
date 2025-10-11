@@ -1,4 +1,3 @@
-output "bucket_name" {
-  description = "The name of the created S3 bucket"
-  value       = aws_s3_bucket.example.bucket
+output "website_endpoint" { 
+value = aws_s3_bucket.terraformbucket.website_endpoint
 }
