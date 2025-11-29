@@ -1,5 +1,5 @@
-provider "aws"{
- region=var.region_name
+provider "aws" {
+  region = var.region_name
 }
 
 
@@ -16,7 +16,7 @@ resource "null_resource" "generate_ssh_key" {
 
 data "local_file" "public_key" {
   depends_on = [null_resource.generate_ssh_key]
-  filename = "${path.module}/keys/${var.key_pair_name}.pub"
+  filename   = "${path.module}/keys/${var.key_pair_name}.pub"
 }
 
 resource "aws_key_pair" "ec2_key" {
@@ -37,19 +37,19 @@ resource "aws_security_group" "ec2_sg" {
     cidr_blocks = [var.allowed_cidr]
   }
 
-  ingress{
+  ingress {
     description = "HTTPS"
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
   }
 
   ingress {
     description = "Custom TCP"
-    from_port =8080
-    to_port =8080
-    protocol = "tcp"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
     cidr_blocks = [var.allowed_cidr]
   }
 
@@ -85,19 +85,19 @@ data "aws_ami" "ec2ami" {
     values = ["hvm"]
   }
 
-  owners      = ["amazon"] 
+  owners = ["amazon"]
 }
 
 resource "aws_instance" "web_instance" {
-  ami = data.aws_ami.ec2ami.id
-  instance_type = var.instance_type
-  key_name = aws_key_pair.ec2_key.key_name
-  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  ami                         = data.aws_ami.ec2ami.id
+  instance_type               = var.instance_type
+  key_name                    = aws_key_pair.ec2_key.key_name
+  vpc_security_group_ids      = [aws_security_group.ec2_sg.id]
   associate_public_ip_address = true
   tags = {
-        Name = "MyEC2Instance"
+    Name = "MyEC2Instance"
   }
-  root_block_device{
+  root_block_device {
     volume_size = 10
     volume_type = "gp3"
   }

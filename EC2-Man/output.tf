@@ -1,11 +1,11 @@
 output "ec2_publicip" {
-    description = "Public IP of the EC2 instance"
-    value       = aws_instance.web_instance.public_ip
+  description = "Public IP of the EC2 instance"
+  value       = aws_instance.web_instance.public_ip
 }
 
 output "ec2_instace_Id" {
   description = "Instance ID"
-  value = aws_instance.web_instance.id
+  value       = aws_instance.web_instance.id
 }
 
 output "ec2_ssh_command" {
