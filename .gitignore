@@ -1,0 +1,11 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.tfstate.d/
+terraform.tfvars
+*.tfvars
+# AWS creds
+~/.aws/credentials
+# Local files
+*.backup
