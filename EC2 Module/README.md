@@ -3,7 +3,7 @@
 This repo demonstrates the **Modular repo with top-level env wrappers** pattern.
 
 Structure:
-- `modules/ec2` : reusable EC2 module
+- `modules/ec2` : reusable EC2 module with autoscaling and load balancer
 - `envs/dev` and `envs/prod` : environment wrappers with their own backend configs
 - `scripts/deploy.sh` : helper to deploy an environment
 
