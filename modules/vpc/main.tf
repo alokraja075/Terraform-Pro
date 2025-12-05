@@ -61,17 +61,17 @@ resource "aws_route_table_association" "public_assoc" {
 }
 
 resource "aws_eip" "nat" {
-  count = var.enable_nat ? length(local.azs) : 0
+  count = var.nat_gateway_strategy == "per_az" ? length(local.azs) : (var.nat_gateway_strategy == "single" ? 1 : 0)
 
   vpc = true
   tags = merge({ Name = "${var.name}-nat-eip-${count.index}" }, var.tags)
 }
 
 resource "aws_nat_gateway" "nat" {
-  count = var.enable_nat ? length(local.azs) : 0
+  count = var.nat_gateway_strategy == "per_az" ? length(local.azs) : (var.nat_gateway_strategy == "single" ? 1 : 0)
 
   allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
+  subnet_id     = element(values(aws_subnet.public), count.index).id
   tags          = merge({ Name = "${var.name}-nat-${count.index}" }, var.tags)
 }
 
@@ -87,8 +87,10 @@ resource "aws_route" "private_nat" {
 
   route_table_id         = each.value.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = var.enable_nat ? aws_nat_gateway.nat[tonumber(each.key)].id : null
-  depends_on = var.enable_nat ? [aws_nat_gateway.nat] : []
+  nat_gateway_id = var.nat_gateway_strategy == "per_az" ?
+    aws_nat_gateway.nat[tonumber(each.key)].id :
+    (var.nat_gateway_strategy == "single" ? aws_nat_gateway.nat[0].id : null)
+  depends_on = var.nat_gateway_strategy == "none" ? [] : [aws_nat_gateway.nat]
 }
 
 resource "aws_route_table_association" "private_assoc" {
@@ -96,4 +98,65 @@ resource "aws_route_table_association" "private_assoc" {
 
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private[each.key].id
+}
+
+locals {
+  private_route_table_ids = [for k, rt in aws_route_table.private : rt.id]
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  count       = var.enable_s3_endpoint ? 1 : 0
+  vpc_id      = aws_vpc.this.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.s3"
+  route_table_ids = local.private_route_table_ids
+  vpc_endpoint_type = "Gateway"
+  tags = merge({ Name = "${var.name}-s3-endpoint" }, var.tags)
+}
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  count       = var.enable_dynamodb_endpoint ? 1 : 0
+  vpc_id      = aws_vpc.this.id
+  service_name = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
+  route_table_ids = local.private_route_table_ids
+  vpc_endpoint_type = "Gateway"
+  tags = merge({ Name = "${var.name}-ddb-endpoint" }, var.tags)
+}
+
+resource "aws_flow_log" "this" {
+  count = var.create_flow_logs ? 1 : 0
+
+  resource_id = aws_vpc.this.id
+  traffic_type = var.flow_logs_traffic_type
+  log_destination_type = var.flow_logs_destination_type
+  log_destination = var.flow_logs_destination_arn
+  iam_role_arn = null
+  tags = merge({ Name = "${var.name}-flow-log" }, var.tags)
+}
+
+resource "aws_network_acl" "public" {
+  count = var.enable_network_acl ? 1 : 0
+
+  vpc_id = aws_vpc.this.id
+  tags   = merge({ Name = "${var.name}-public-acl" }, var.tags)
+}
+
+resource "aws_network_acl" "private" {
+  count = var.enable_network_acl ? 1 : 0
+
+  vpc_id = aws_vpc.this.id
+  tags   = merge({ Name = "${var.name}-private-acl" }, var.tags)
+}
+
+resource "aws_network_acl_association" "public_assoc" {
+  count = var.enable_network_acl ? length(values(aws_subnet.public)) : 0
+
+  network_acl_id = aws_network_acl.public[0].id
+  subnet_id      = element(values(aws_subnet.public), count.index).id
+}
+
+resource "aws_network_acl_association" "private_assoc" {
+  count = var.enable_network_acl ? length(values(aws_subnet.private)) : 0
+
+  network_acl_id = aws_network_acl.private[0].id
+  subnet_id      = element(values(aws_subnet.private), count.index).id
 }
