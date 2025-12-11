@@ -1,0 +1,74 @@
+# -----------------------------
+# Terraform
+# -----------------------------
+# State files
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Sensitive variable files (may contain secrets)
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+terraform.tfvars.json
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform working directory and plugin cache
+.terraform/
+.terraform.lock.hcl
+.terraform.tfstate.d/
+
+# Backup files
+*.backup
+
+# -----------------------------
+# AWS CLI / SDK
+# -----------------------------
+# If you (mistakenly) checked in AWS config/credentials into the repo
+.aws/
+# Local AWS credential files or temporary exports
+aws_credentials
+aws_config
+
+# Note: ~/.aws/ is a home-directory path and cannot be ignored from inside
+# this repo. Add entries here only to ignore any .aws/ directory if it exists
+# inside the project tree.
+
+# -----------------------------
+# Editor / OS / Tooling
+# -----------------------------
+# VS Code
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# Swap / temp files
+*~
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Node / build (if present)
+node_modules/
+dist/
+build/
+
+# Misc
+.env
+.env.local
+.env.*.local
