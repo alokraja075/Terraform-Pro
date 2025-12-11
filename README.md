@@ -1,4 +1,4 @@
-# Terraform Modular Repo (env wrappers)
+# Terraform Modular Repo
 
 This repo demonstrates the **Modular repo with top-level env wrappers** pattern.
 
