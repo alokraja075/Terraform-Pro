@@ -1,10 +1,10 @@
 output "launch_template_id" {
-	value = aws_launch_template.ec2template.id
+	value = { for k, v in aws_launch_template.ec2template : k => v.id }
 }
 
 output "asg_name" {
 	description = "Auto Scaling Group name"
-	value       = aws_autoscaling_group.ec2_asg.name
+	value = { for k, v in aws_autoscaling_group.ec2_asg : k => v.name }
 }
 
 output "lb_dns_name" {
