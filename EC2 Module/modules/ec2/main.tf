@@ -42,33 +42,20 @@ resource "aws_key_pair" "ec2_key" {
   public_key = data.local_file.public_key.content
 }
 
-# Security Group
+# Example: Use for_each to create multiple security groups
 resource "aws_security_group" "sg" {
-  name        = "${var.name}-sg"
-  description = "Allow SSH and HTTP"
+  for_each    = var.security_groups
+  name        = "${each.key}-sg"
+  description = each.value.description
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  dynamic "ingress" {
+    for_each = each.value.ingress_ports
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   egress {
@@ -79,15 +66,15 @@ resource "aws_security_group" "sg" {
   }
 }
 
+# Example: Use for_each to create multiple launch templates
 resource "aws_launch_template" "ec2template" {
-  name   = "${var.name}-launch-template"
-  image_id      = var.ami
-  instance_type = var.instance_type
+  for_each      = var.launch_templates
+  name          = "${each.key}-launch-template"
+  image_id      = each.value.ami
+  instance_type = each.value.instance_type
   key_name      = aws_key_pair.ec2_key.key_name
-
-  vpc_security_group_ids = [aws_security_group.sg.id]
-
-  user_data = base64encode(var.user_data)
+  vpc_security_group_ids = [aws_security_group.sg[each.value.sg_key].id]
+  user_data     = base64encode(each.value.user_data)
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -99,31 +86,32 @@ resource "aws_launch_template" "ec2template" {
 
   tag_specifications {
     resource_type = "instance"
-
     tags = {
-      Name = "${var.name}-web"
+      Name = "${each.key}-web"
     }
   }
   lifecycle {
     create_before_destroy = true
   }
 }
+# Example: Use for_each to create multiple autoscaling groups
 resource "aws_autoscaling_group" "ec2_asg" {
+  for_each = var.autoscaling_groups
   launch_template {
-    id      = aws_launch_template.ec2template.id
+    id      = aws_launch_template.ec2template[each.value.lt_key].id
     version = "$Latest"
   }
-  name                = "${var.name}-asg"
-  min_size                  = 2
-  max_size                  = 3
-  desired_capacity          = 2
-  vpc_zone_identifier       = var.subnet_ids
+  name                = "${each.value.name}-asg"
+  min_size            = each.value.min_size
+  max_size            = each.value.max_size
+  desired_capacity    = each.value.desired_capacity
+  vpc_zone_identifier = each.value.subnet_ids
   health_check_type         = "EC2"
   health_check_grace_period = 300
 
   tag {
     key                 = "Name"
-    value               = "${var.name}-web"
+    value               = "${each.value.name}-web"
     propagate_at_launch = true
   }
   instance_refresh {
@@ -159,7 +147,7 @@ resource "aws_lb" "application_lb" {
   name               = "${var.name}-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.sg.id]
+    security_groups    = [for sg in aws_security_group.sg : sg.id]
   subnets            = var.subnet_ids
   tags = {
     Name = "${var.name}-alb"
@@ -191,7 +179,8 @@ resource "aws_lb_listener" "app_listener" {
   }
 }
 resource "aws_autoscaling_attachment" "asg_tg_attach" {
-  autoscaling_group_name = aws_autoscaling_group.ec2_asg.name
+  for_each = aws_autoscaling_group.ec2_asg
+  autoscaling_group_name = each.value.name
   lb_target_group_arn    = aws_lb_target_group.app_tg.arn
 }
 
@@ -202,12 +191,13 @@ resource "aws_autoscaling_attachment" "asg_tg_attach" {
    executed by the machine running Terraform using the AWS CLI. This will run only when the launch template latest_version changes.
    Note: this requires the AWS CLI and credentials to be configured on the machine running `terraform apply`. */
 resource "null_resource" "refresh_via_cli" {
+  for_each = aws_autoscaling_group.ec2_asg
   triggers = {
-    lt_version = aws_launch_template.ec2template.latest_version
+    lt_version = aws_launch_template.ec2template[each.key].latest_version
   }
 
   provisioner "local-exec" {
-    command = "aws autoscaling start-instance-refresh --auto-scaling-group-name ${aws_autoscaling_group.ec2_asg.name} --preferences MinHealthyPercentage=75,InstanceWarmup=300 --desired-configuration 'LaunchTemplate={LaunchTemplateId=${aws_launch_template.ec2template.id},Version=${aws_launch_template.ec2template.latest_version}}' || true"
+    command = "aws autoscaling start-instance-refresh --auto-scaling-group-name ${each.value.name} --preferences MinHealthyPercentage=75,InstanceWarmup=300 --desired-configuration 'LaunchTemplate={LaunchTemplateId=${aws_launch_template.ec2template[each.key].id},Version=${aws_launch_template.ec2template[each.key].latest_version}}' || true"
   }
 
   depends_on = [aws_autoscaling_group.ec2_asg]
