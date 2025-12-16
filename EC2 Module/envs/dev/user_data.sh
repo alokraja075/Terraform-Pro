@@ -6,12 +6,39 @@ sudo apt update -y
 # Install Nginx
 sudo apt install -y nginx
 
-# Get instance metadata
-PUBLIC_IP=$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/public-ipv4 || true)
-PRIVATE_IP=$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/local-ipv4 || true)
-INSTANCE_ID=$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/instance-id || true)
-AVAIL_ZONE=$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/placement/availability-zone || true)
-HOSTNAME=$(curl -s --max-time 2 http://169.254.169.254/latest/meta-data/hostname || hostname -f || true)
+# Get instance metadata (support IMDSv2 with a token; fallback to IMDSv1)
+TOKEN=""
+for i in 1 2 3 4 5; do
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" || true)
+  if [ -n "$TOKEN" ]; then
+    break
+  fi
+  sleep 1
+done
+
+get_meta() {
+  local meta_path="$1"
+  local out=""
+  for i in 1 2 3 4 5; do
+    if [ -n "$TOKEN" ]; then
+      out=$(curl -s --max-time 2 -H "X-aws-ec2-metadata-token: $TOKEN" "http://169.254.169.254/latest/meta-data/${meta_path}" || true)
+    else
+      out=$(curl -s --max-time 2 "http://169.254.169.254/latest/meta-data/${meta_path}" || true)
+    fi
+    if [ -n "$out" ]; then
+      echo "$out"
+      return
+    fi
+    sleep 1
+  done
+  echo ""
+}
+
+PUBLIC_IP=$(get_meta "public-ipv4")
+PRIVATE_IP=$(get_meta "local-ipv4")
+INSTANCE_ID=$(get_meta "instance-id")
+AVAIL_ZONE=$(get_meta "placement/availability-zone")
+HOSTNAME=$(get_meta "hostname")
 
 # Normalize values
 if [ -z "$PUBLIC_IP" ]; then
@@ -40,7 +67,7 @@ sudo bash -c "cat > /var/www/html/index.nginx-debian.html <<EOF
     <p>Public IP: ${PUBLIC_IP}</p>
     <p>Private IP: ${PRIVATE_IP}</p>
     <p>Availability Zone: ${AVAIL_ZONE}</p>
-    <p>Note: If this instance is behind an ALB/ASG and has no public IP, the Public IP will show as "No public IP assigned".</p>
+    <p>Note: If this instance is behind an ALB/ASG and has no public IP, the Public IP will show as 'No public IP assigned.'</p>
   </body>
 </html>
 EOF"
@@ -59,4 +86,3 @@ echo "User data script executed successfully. Nginx is running and serving the i
 if [ -f /etc/rc.local ]; then
   chmod +x /etc/rc.local
 fi
-
