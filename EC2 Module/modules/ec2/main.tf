@@ -37,7 +37,6 @@ data "local_file" "public_key" {
 # Create AWS Key Pair using generated key
 resource "aws_key_pair" "ec2_key" {
   depends_on = [null_resource.generate_ssh_key]
-
   key_name   = var.key_pair_name
   public_key = data.local_file.public_key.content
 }
@@ -77,7 +76,7 @@ resource "aws_launch_template" "ec2template" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size = 10
+      volume_size = var.environments == "prod" ? 50 : var.EC2_default_storage_size
       volume_type = "gp3"
     }
   }
