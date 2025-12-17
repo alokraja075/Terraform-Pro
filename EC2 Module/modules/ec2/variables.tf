@@ -15,6 +15,16 @@ variable "instance_type" {
   type    = string
   default = "t2.micro"
 }
+
+variable "EC2_default_storage_size" {
+  type = string
+  default = "20"
+}
+variable "environments" {
+  type        = string
+  description = "Environment name (e.g., prod, dev)"
+  default     = "dev"
+}
 variable "key_pair_name" {
   description = "Key pair name"
   type        = string
