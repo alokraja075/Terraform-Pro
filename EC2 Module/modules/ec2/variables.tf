@@ -2,6 +2,11 @@ variable "name" {
   type    = string
   default = "app"
 }
+variable "ingress_ports" {
+  description = "List of ingress ports"
+  type        = list(number)
+  default     = [22, 80, 8000]
+}
 variable "ami" {
   type = string
   default = "ami-0c02fb55956c7d316"
@@ -9,6 +14,16 @@ variable "ami" {
 variable "instance_type" {
   type    = string
   default = "t2.micro"
+}
+
+variable "EC2_default_storage_size" {
+  type = string
+  default = "20"
+}
+variable "environments" {
+  type        = string
+  description = "Environment name (e.g., prod, dev)"
+  default     = "dev"
 }
 variable "key_pair_name" {
   description = "Key pair name"

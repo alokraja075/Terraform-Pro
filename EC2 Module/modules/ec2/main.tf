@@ -37,7 +37,6 @@ data "local_file" "public_key" {
 # Create AWS Key Pair using generated key
 resource "aws_key_pair" "ec2_key" {
   depends_on = [null_resource.generate_ssh_key]
-
   key_name   = var.key_pair_name
   public_key = data.local_file.public_key.content
 }
@@ -47,30 +46,15 @@ resource "aws_security_group" "sg" {
   name        = "${var.name}-sg"
   description = "Allow SSH and HTTP"
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  dynamic "ingress" {
+    for_each = var.ingress_ports
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
@@ -92,7 +76,7 @@ resource "aws_launch_template" "ec2template" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size = 10
+      volume_size = var.environments == "prod" ? 50 : var.EC2_default_storage_size
       volume_type = "gp3"
     }
   }

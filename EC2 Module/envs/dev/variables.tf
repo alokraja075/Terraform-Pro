@@ -7,7 +7,7 @@ variable "name" {
   default = "dev-app"
 }
 variable "ami" {
-  type = string
+  type    = string
   default = "ami-0ecb62995f68bb549"
 }
 variable "instance_type" {
@@ -22,5 +22,5 @@ variable "key_pair_name" {
 variable "subnet_ids" {
   description = "List of subnet IDs to deploy to"
   type        = list(string)
-  default     = ["subnet-02a7d1c1b59b50040", "subnet-087cdbcdd03331571","subnet-0755652f55491ce4e"]
+  default     = ["subnet-02a7d1c1b59b50040", "subnet-087cdbcdd03331571", "subnet-0755652f55491ce4e"]
 }
