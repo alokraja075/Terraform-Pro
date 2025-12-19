@@ -1,33 +1,27 @@
 # Terraform-Pro
 
-A comprehensive Terraform project repository containing reusable modules and configurations for AWS infrastructure provisioning.
+Infrastructure-as-code examples and reusable modules for provisioning AWS workloads with Terraform.
 
-## Project Structure
+## Repository Layout
 
 ```
 Terraform-Pro/
-├── EC2 Module/          # Modular EC2 setup with autoscaling and load balancer
-├── Ec2/                 # Standalone EC2 configuration
-├── modules/vpc/         # Reusable VPC module
-└── S3 and VPC/          # S3 bucket and VPC configurations
+├── EC2 Module/        # Reusable EC2 + ASG + ALB module with env examples
+├── Ec2/               # Standalone EC2 sample configuration
+├── Initial files/     # Base Terraform scaffolding
+├── Lambda/            # Lambda-related samples (placeholder)
+└── S3 and VPC/        # S3 static site and VPC examples
 ```
 
-## Features
+## Prerequisites
 
-- **EC2 Module**: Production-ready EC2 module with:
-  - Auto Scaling Group (ASG)
-  - Application Load Balancer (ALB)
-  - Automated SSH key generation
-  - Target tracking scaling policies
-  - Multi-environment support (dev/prod)
+- Terraform >= 1.0
+- AWS CLI configured with credentials and region
+- Remote state backend (S3 + DynamoDB) if using the provided backend configs
 
-- **VPC Module**: Reusable VPC infrastructure
-- **S3 Configurations**: S3 bucket setup with static website hosting
-- **Backend Configuration**: Remote state management with S3 and DynamoDB
+## Getting Started (EC2 Module)
 
-## Quick Start
-
-### EC2 Module Deployment
+Deploy the dev environment:
 
 ```bash
 cd "EC2 Module/envs/dev"
@@ -36,21 +30,13 @@ terraform plan
 terraform apply
 ```
 
-### Prerequisites
+For prod, switch to `EC2 Module/envs/prod` before running the same commands.
 
-- Terraform >= 1.0
-- AWS CLI configured
-- S3 bucket for remote state
-- DynamoDB table for state locking
-
-## Module Usage
-
-### EC2 Module
+## Module Usage Example
 
 ```hcl
 module "ec2" {
-  source = "./modules/ec2"
-  
+  source        = "./modules/ec2"
   name          = "my-app"
   ami           = "ami-0c02fb55956c7d316"
   instance_type = "t2.micro"
@@ -60,13 +46,29 @@ module "ec2" {
 }
 ```
 
+Key capabilities:
+- Auto Scaling Group with rolling refresh
+- Application Load Balancer + target group and listener
+- SSH key generation for the launch template
+- Basic security group with configurable ingress ports
+
+## Useful Commands
+
+```bash
+terraform fmt         
+terraform validate    
+terraform plan        
+terraform apply       
+terraform destroy     
+```
+
 ## Outputs
 
-- Load Balancer DNS
+- Load Balancer DNS name
 - Auto Scaling Group name
-- SSH key paths
+- SSH key paths (if generated locally)
 - Target Group ARN
 
 ## License
 
-See LICENSE file for details.
+See LICENSE for details.
