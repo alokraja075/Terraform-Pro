@@ -1,39 +1,52 @@
 # Terraform-Pro
 
-Infrastructure-as-code examples and reusable modules for provisioning AWS workloads with Terraform.
+Infrastructure-as-code examples and reusable modules for AWS, covering EC2, autoscaling, ALB, VPC, and S3.
 
 ## Repository Layout
 
 ```
 Terraform-Pro/
-├── EC2 Module/        # Reusable EC2 + ASG + ALB module with env examples
-├── Ec2/               # Standalone EC2 sample configuration
-├── Initial files/     # Base Terraform scaffolding
-├── Lambda/            # Lambda-related samples (placeholder)
-└── S3 and VPC/        # S3 static site and VPC examples
+├── EC2 Module/        # Reusable EC2 module + env wrappers (dev/prod)
+│   ├── modules/ec2/   # Launch template, ASG, ALB, SG, key handling
+│   ├── envs/dev|prod/ # Environment wrappers with backend + tfvars
+│   └── scripts/       # deploy.sh helper
+├── Ec2/               # Standalone EC2 example (single instance)
+├── Initial files/     # Base Terraform scaffolding and versions
+├── Lambda/            # Placeholder for Lambda samples
+└── S3 and VPC/        # S3 static site + VPC example configs
 ```
 
 ## Prerequisites
 
 - Terraform >= 1.0
-- AWS CLI configured with credentials and region
-- Remote state backend (S3 + DynamoDB) if using the provided backend configs
+- AWS CLI configured with credentials and default region
+- Remote state (S3 bucket + DynamoDB lock table) when using provided backend files
 
-## Getting Started (EC2 Module)
+## EC2 Module (preferred path)
 
-Deploy the dev environment:
+Features (modules/ec2):
+- Launch Template with user data and key pair injection
+- Auto Scaling Group with instance refresh (rolling) and target tracking
+- Application Load Balancer, target group, listener, and ASG attachment
+- Security Group with configurable ingress ports
+- Optional local SSH key generation
 
+Environments (envs/dev, envs/prod):
+- Separate backend.tf per env
+- Variables via terraform.tfvars (edit before deploy)
+- Helper script: scripts/deploy.sh
+
+Deploy dev:
 ```bash
 cd "EC2 Module/envs/dev"
 terraform init -reconfigure
-terraform plan
-terraform apply
+terraform plan -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
 ```
 
-For prod, switch to `EC2 Module/envs/prod` before running the same commands.
+Deploy prod (same steps under envs/prod).
 
-## Module Usage Example
-
+Use the module directly:
 ```hcl
 module "ec2" {
   source        = "./modules/ec2"
@@ -46,28 +59,33 @@ module "ec2" {
 }
 ```
 
-Key capabilities:
-- Auto Scaling Group with rolling refresh
-- Application Load Balancer + target group and listener
-- SSH key generation for the launch template
-- Basic security group with configurable ingress ports
+## Other Examples
 
-## Useful Commands
+- Ec2/: single-instance Terraform config with its own backend/vars.
+- S3 and VPC/: static website bucket plus VPC samples (includes ALB/EC2-manual subdirs and assets).
+- Initial files/: minimal Terraform boilerplate.
+- Lambda/: placeholder for future Lambda samples.
+
+## Common Commands
 
 ```bash
-terraform fmt         
-terraform validate    
-terraform plan        
-terraform apply       
-terraform destroy     
+terraform fmt
+terraform validate
+terraform plan
+terraform apply
+terraform destroy
 ```
 
-## Outputs
+## Outputs (EC2 module)
 
-- Load Balancer DNS name
+- Application Load Balancer DNS name
 - Auto Scaling Group name
 - SSH key paths (if generated locally)
 - Target Group ARN
+
+## Cleanup
+
+Run `terraform destroy` in the env or example directory to tear down resources.
 
 ## License
 
