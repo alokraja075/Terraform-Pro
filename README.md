@@ -6,6 +6,20 @@ Infrastructure-as-code examples and reusable modules for AWS, covering EC2, auto
 
 ```
 Terraform-Pro/
+├── Ansible/           # Ansible automation for application deployment
+│   ├── playbooks/     # Ansible playbooks
+│   │   └── splunk_windows_install.yml  # Splunk Enterprise Windows installation
+│   ├── roles/         # Reusable Ansible roles
+│   │   └── splunk_windows/             # Splunk Windows installation role
+│   │       ├── tasks/                  # Installation tasks
+│   │       ├── vars/                   # Role variables
+│   │       └── templates/              # Configuration templates
+│   ├── inventory/     # Host inventories
+│   │   └── windows_hosts.ini           # Windows hosts configuration
+│   ├── group_vars/    # Group-level variables
+│   ├── ansible.cfg    # Ansible configuration
+│   ├── requirements.txt # Python dependencies
+│   └── deploy_splunk.sh # Deployment helper script
 ├── EC2 Module/        # Reusable EC2 module + env wrappers (dev/prod)
 │   ├── modules/ec2/   # Launch template, ASG, ALB, SG, key handling
 │   ├── envs/dev|prod/ # Environment wrappers with backend + tfvars
@@ -21,6 +35,8 @@ Terraform-Pro/
 - Terraform >= 1.0
 - AWS CLI configured with credentials and default region
 - Remote state (S3 bucket + DynamoDB lock table) when using provided backend files
+- Ansible >= 2.10 (for application deployment)
+- Python 3.7+ with pywinrm (for Windows host management)
 
 ## EC2 Module (preferred path)
 
@@ -61,10 +77,44 @@ module "ec2" {
 
 ## Other Examples
 
+- **Ansible/**: Splunk Enterprise deployment automation for Windows servers with reusable roles and playbooks
 - Ec2/: single-instance Terraform config with its own backend/vars.
 - S3 and VPC/: static website bucket plus VPC samples (includes ALB/EC2-manual subdirs and assets).
 - Initial files/: minimal Terraform boilerplate.
 - Lambda/: placeholder for future Lambda samples.
+
+## Ansible Deployment (Splunk on Windows)
+
+Deploy Splunk Enterprise to Windows servers using Ansible:
+
+```bash
+cd Ansible
+
+# Install requirements
+pip install -r requirements.txt
+
+# Configure your Windows hosts
+vi inventory/windows_hosts.ini
+
+# Setup credentials with Ansible Vault
+ansible-vault create group_vars/windows/vault.yml
+
+# Run deployment
+chmod +x deploy_splunk.sh
+./deploy_splunk.sh
+
+# Or directly:
+ansible-playbook playbooks/splunk_windows_install.yml --ask-vault-pass
+```
+
+Key features:
+- Automated Splunk Enterprise installation on Windows
+- Service configuration and startup verification
+- Windows firewall rule automation
+- Health check validation
+- Reusable role for multiple deployments
+
+See [Ansible/README.md](Ansible/README.md) for detailed configuration and troubleshooting.
 
 ## Common Commands
 

@@ -1,0 +1,9 @@
+# Requirements for Ansible Splunk Windows Deployment
+
+# Ansible version
+ansible>=2.10
+
+# Required Python packages for Windows management
+pywinrm>=0.4.1
+pywinrm[credssp]>=0.4.1
+jinja2>=2.11.0
