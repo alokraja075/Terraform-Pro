@@ -1,0 +1,57 @@
+---
+# Splunk Windows Installation Playbook
+# This playbook installs Splunk Enterprise on Windows servers
+
+- name: Install Splunk Enterprise on Windows
+  hosts: windows
+  gather_facts: yes
+  
+  vars:
+    ansible_user: "{{ windows_admin_user }}"
+    ansible_password: "{{ windows_admin_password }}"
+    ansible_connection: winrm
+    ansible_winrm_transport: ntlm
+    ansible_port: 5985
+
+  roles:
+    - splunk_windows
+
+  pre_tasks:
+    - name: Validate Windows hosts connectivity
+      win_ping:
+      register: ping_result
+
+    - name: Fail if hosts are unreachable
+      fail:
+        msg: "Cannot reach Windows host: {{ inventory_hostname }}"
+      when: ping_result is failed
+
+    - name: Gather OS information
+      win_shell: "[System.Environment]::OSVersion"
+      register: os_info
+
+    - name: Display OS information
+      debug:
+        msg: "Installing Splunk on {{ os_info.stdout }}"
+
+  post_tasks:
+    - name: Create temp directory if not exists
+      win_file:
+        path: "{{ temp_download_path }}"
+        state: directory
+
+    - name: Display final installation status
+      debug:
+        msg: "Splunk installation completed successfully on {{ inventory_hostname }}"
+
+    - name: Generate installation report
+      debug:
+        msg: |
+          Splunk Installation Report:
+          ===========================
+          Host: {{ inventory_hostname }}
+          Installation Path: {{ splunk_install_path }}
+          Web Interface: http://{{ inventory_hostname }}:{{ splunk_web_port }}
+          Admin User: {{ splunk_admin_user }}
+          Service Name: {{ splunk_service_name }}
+          Status: Successfully Installed
