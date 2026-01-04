@@ -1,0 +1,106 @@
+---
+# Splunk Installation Tasks for Windows
+# This role installs and configures Splunk Enterprise on Windows servers
+
+- name: Check if Splunk is already installed
+  win_stat:
+    path: "{{ splunk_install_path }}"
+  register: splunk_stat
+
+- name: Display Splunk installation status
+  debug:
+    msg: "Splunk is already installed at {{ splunk_install_path }}"
+  when: splunk_stat.stat.exists
+
+- name: Create Splunk installation directory
+  win_file:
+    path: "{{ splunk_install_path }}"
+    state: directory
+  when: not splunk_stat.stat.exists
+
+- name: Download Splunk Enterprise installer
+  win_get_url:
+    url: "{{ splunk_download_url }}"
+    dest: "{{ temp_download_path }}/{{ splunk_installer_file }}"
+    force: no
+  register: splunk_download
+  when: not splunk_stat.stat.exists
+
+- name: Display download status
+  debug:
+    msg: "Splunk installer downloaded successfully"
+  when: splunk_download is succeeded and not splunk_stat.stat.exists
+
+- name: Install Splunk Enterprise
+  win_package:
+    path: "{{ temp_download_path }}/{{ splunk_installer_file }}"
+    state: present
+    arguments: "--accept-license"
+  register: splunk_install
+  when: not splunk_stat.stat.exists
+
+- name: Create Splunk user and set ownership
+  win_user:
+    name: "{{ splunk_user }}"
+    password: "{{ splunk_password }}"
+    state: present
+    description: "Splunk service account"
+  register: splunk_user_created
+  when: not splunk_stat.stat.exists
+
+- name: Configure Splunk as a service
+  win_service:
+    name: "{{ splunk_service_name }}"
+    state: started
+    start_mode: auto
+  register: splunk_service
+  when: splunk_install is succeeded
+
+- name: Wait for Splunk to be fully started
+  win_wait_for:
+    port: "{{ splunk_web_port }}"
+    host: localhost
+    timeout: 300
+  when: splunk_service is succeeded
+
+- name: Verify Splunk installation
+  win_uri:
+    url: "http://localhost:{{ splunk_web_port }}/en-US/app/launcher/home"
+    method: GET
+    status_code: 200
+    force_basic_auth: yes
+    user: "{{ splunk_admin_user }}"
+    password: "{{ splunk_admin_password }}"
+  register: splunk_verify
+  until: splunk_verify is succeeded
+  retries: 5
+  delay: 10
+  when: splunk_service is succeeded
+
+- name: Display installation success message
+  debug:
+    msg: "Splunk Enterprise has been successfully installed and is running on port {{ splunk_web_port }}"
+  when: splunk_verify is succeeded
+
+- name: Configure firewall rules for Splunk
+  win_firewall_rule:
+    name: "Allow Splunk Web Port {{ splunk_web_port }}"
+    localport: "{{ splunk_web_port }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+  when: splunk_firewall_enabled
+
+- name: Configure additional Splunk ports
+  win_firewall_rule:
+    name: "Allow Splunk Forwarding Port {{ item }}"
+    localport: "{{ item }}"
+    action: allow
+    direction: in
+    protocol: tcp
+    state: present
+    enabled: yes
+  loop: "{{ splunk_additional_ports }}"
+  when: splunk_firewall_enabled
