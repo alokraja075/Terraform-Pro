@@ -1,0 +1,45 @@
+---
+# Variables for Splunk Windows Installation
+
+# Splunk installation and download settings
+splunk_version: "9.1.1"
+splunk_build: "15.0.0"
+splunk_installer_file: "splunk-{{ splunk_version }}-{{ splunk_build }}-x64-release.msi"
+splunk_download_url: "https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x64&platform=windows&version={{ splunk_version }}&product=splunk&filename={{ splunk_installer_file }}&wget=true"
+
+# Installation paths
+splunk_install_path: "C:\\Program Files\\Splunk"
+splunk_home: "{{ splunk_install_path }}"
+temp_download_path: "C:\\Temp"
+
+# Splunk service configuration
+splunk_service_name: "SplunkWeb"
+splunk_user: "splunk"
+splunk_password: "{{ vault_splunk_password | default('SplunkAdm1n!') }}"
+
+# Splunk web interface settings
+splunk_web_port: 8000
+splunk_admin_user: "admin"
+splunk_admin_password: "{{ vault_splunk_admin_password | default('Changeme123!') }}"
+
+# Firewall settings
+splunk_firewall_enabled: true
+splunk_additional_ports:
+  - 9997  # Default forwarding port
+  - 8089  # Splunk management port
+  - 9998  # License server port
+
+# Splunk configuration settings
+splunk_bind_ip: "0.0.0.0"
+splunk_enable_ssl: true
+splunk_ssl_certificate_path: "{{ splunk_home }}\\etc\\auth\\mycerts\\server.pem"
+splunk_ssl_password: "{{ vault_splunk_ssl_password | default('') }}"
+
+# Deployment settings
+splunk_deployment_client_enabled: false
+splunk_deployment_server: ""
+splunk_deployment_server_port: 8089
+
+# Monitoring and logging
+splunk_enable_remote_monitoring: true
+splunk_monitoring_port: 9997
