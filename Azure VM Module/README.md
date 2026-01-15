@@ -284,4 +284,4 @@ For issues or improvements, please create an issue or submit a pull request.
 
 ## License
 
-This module is licensed under the MIT License - see the LICENSE file for details.
+This module is licensed under the MIT License
