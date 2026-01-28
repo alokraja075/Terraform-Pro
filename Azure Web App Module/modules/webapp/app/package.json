@@ -1,0 +1,10 @@
+{
+  "name": "tf-azure-webapp-sample",
+  "version": "1.0.0",
+  "description": "Minimal Node server for Azure App Service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "UNLICENSED"
+}
